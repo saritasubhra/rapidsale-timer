@@ -1,0 +1,23 @@
+{% if block.settings.timer_id != blank %}
+  <div
+    class="rapidsale-timer"
+    data-timer-id="{{ block.settings.timer_id }}"
+  >
+    Loading timer...
+  </div>
+{% endif %}
+
+{% schema %}
+{
+  "name": "RapidSale Countdown Timer",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "timer_id",
+      "label": "Timer ID",
+      "info": "Select a published timer from the app"
+    }
+  ]
+}
+{% endschema %}

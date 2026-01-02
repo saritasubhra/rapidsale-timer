@@ -32,3 +32,44 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+
+model Timer {
+  id              String   @id @default(cuid())
+  shop            String
+
+  // Content
+  name            String
+  title           String
+  subheading      String?
+  buttonText      String
+  link            String?
+
+  timerType       String   // "date" | "fixed"
+  endDate         String?
+  endTime         String?
+  fixedMinutes    String?
+
+  timerLabels     Json
+
+  // Design
+  bgColor         String
+  borderRadius    String
+  borderSize      String
+  borderColor     String
+  paddingTopBottom String
+  paddingInside   String
+  fontFamily      String
+  titleSize       String
+  titleColor      String
+
+  // Placement
+  productTarget   String
+  geoTarget       String
+
+  type            String   // product-page | top-bottom-bar
+  status          String   // draft | published
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
