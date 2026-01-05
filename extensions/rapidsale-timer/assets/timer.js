@@ -1,71 +1,105 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  const nodes = document.querySelectorAll(".rapidsale-timer");
+(async function () {
+  const containers = document.querySelectorAll(".rapidsale-timer");
 
-  nodes.forEach(async (node) => {
-    const timerId = node.dataset.timerId;
+  containers.forEach(async (el) => {
+    const timerId = "cmjybf6x70001chrsrk1oy8qp";
+    if (!timerId) return;
 
-    const res = await fetch(`/apps/rapidsale/api/timer/${timerId}`);
-    const config = await res.json();
+    try {
+      const res = await fetch(
+        `/apps/rapidsale/timer/cmjybf6x70001chrsrk1oy8qp`,
+      );
+      if (!res.ok) throw new Error("Timer fetch failed");
 
-    renderTimer(node, config);
+      const timer = await res.json();
+
+      renderTimer(el, timer);
+    } catch (err) {
+      el.innerHTML = "<p>Failed to load timer.</p>";
+      console.error(err);
+    }
   });
-});
 
-function renderTimer(container, config) {
-  container.innerHTML = `
-    <div style="
-      background:${config.bgColor};
-      border-radius:${config.borderRadius}px;
-      padding:${config.paddingTopBottom}px;
-      text-align:center;
-    ">
-      <div style="
-        font-size:${config.titleSize}px;
-        color:${config.titleColor};
-      ">
-        ${config.title}
+  function renderTimer(container, timer) {
+    container.innerHTML = `
+      <div
+        style="
+          background:${timer.bgColor};
+          border:${timer.borderSize}px solid ${timer.borderColor};
+          border-radius:${timer.borderRadius}px;
+          padding:${timer.paddingTopBottom}px ${timer.paddingInside}px;
+          text-align:center;
+          font-family:${timer.fontFamily === "theme" ? "inherit" : timer.fontFamily};
+        "
+      >
+        <div
+          style="
+            font-size:${timer.titleSize}px;
+            color:${timer.titleColor};
+            margin-bottom:8px;
+          "
+        >
+          ${timer.title}
+        </div>
+
+        <div class="rapidsale-time" style="font-size:32px;font-weight:600;">
+          -- : -- : -- : --
+        </div>
+
+        ${
+          timer.buttonText
+            ? `<a
+                href="${timer.link || "#"}"
+                style="
+                  display:inline-block;
+                  margin-top:10px;
+                  padding:10px 18px;
+                  background:#000;
+                  color:#fff;
+                  text-decoration:none;
+                  border-radius:6px;
+                "
+              >
+                ${timer.buttonText}
+              </a>`
+            : ""
+        }
       </div>
-      <div class="timer-digits"></div>
-      <a href="${config.link}">
-        <button>${config.buttonText}</button>
-      </a>
-    </div>
-  `;
+    `;
 
-  startCountdown(container.querySelector(".timer-digits"), config);
-}
-
-function startCountdown(container, config) {
-  let endTimestamp;
-
-  if (config.timerType === "date") {
-    endTimestamp = new Date(`${config.endDate}T${config.endTime}`).getTime();
-  } else {
-    endTimestamp = Date.now() + Number(config.fixedMinutes) * 60 * 1000;
+    startCountdown(container.querySelector(".rapidsale-time"), timer);
   }
 
-  function update() {
-    const now = Date.now();
-    const diff = endTimestamp - now;
+  function startCountdown(el, timer) {
+    let endTime;
 
-    if (diff <= 0) {
-      container.textContent = "00 : 00 : 00 : 00";
-      return;
+    if (timer.timerType === "date") {
+      endTime = new Date(`${timer.endDate}T${timer.endTime}`).getTime();
+    } else {
+      endTime = Date.now() + Number(timer.fixedMinutes) * 60 * 1000;
     }
 
-    const totalSeconds = Math.floor(diff / 1000);
-    const days = Math.floor(totalSeconds / 86400);
-    const hrs = Math.floor((totalSeconds % 86400) / 3600);
-    const mins = Math.floor((totalSeconds % 3600) / 60);
-    const secs = totalSeconds % 60;
+    const tick = () => {
+      const diff = endTime - Date.now();
+      if (diff <= 0) {
+        el.textContent = "00 : 00 : 00 : 00";
+        return;
+      }
 
-    container.textContent = `${pad(days)} : ${pad(hrs)} : ${pad(mins)} : ${pad(secs)}`;
+      const total = Math.floor(diff / 1000);
+      const days = Math.floor(total / 86400);
+      const hrs = Math.floor((total % 86400) / 3600);
+      const mins = Math.floor((total % 3600) / 60);
+      const secs = total % 60;
+
+      el.textContent =
+        `${String(days).padStart(2, "0")} : ` +
+        `${String(hrs).padStart(2, "0")} : ` +
+        `${String(mins).padStart(2, "0")} : ` +
+        `${String(secs).padStart(2, "0")}`;
+    };
+
+    tick();
+    setInterval(tick, 1000);
   }
-
-  update();
-  setInterval(update, 1000);
-}
-
-function pad(num) {
-  return String(num).padStart(2, "0");
-}
+})();

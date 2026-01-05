@@ -67,9 +67,11 @@ model Timer {
   productTarget   String
   geoTarget       String
 
-  type            String   // product-page | top-bottom-bar
-  status          String   // draft | published
+  type             String   // "product-page" | "top-bottom-bar"
+  status           String   @default("active") // "active", "expired", or "disabled"
+  expiresAt        DateTime?
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
 }
