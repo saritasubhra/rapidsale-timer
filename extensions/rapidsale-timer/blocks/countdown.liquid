@@ -5,12 +5,11 @@
   >
     <div class="rapidsale-loading">Loading countdown…</div>
   </div>
-
-  {{ 'timer.js' | asset_url | script_tag }}
+  {% comment %} REMOVE THE SCRIPT_TAG LINE FROM HERE {% endcomment %}
 {% else %}
   {% if request.design_mode %}
     <div style="padding:12px;border:1px dashed #ccc;">
-      <strong>RapidSale Countdown Timer</strong><br>
+      <strong>RapidSale Countdown Timer 2</strong><br>
       Select a timer in block settings.
     </div>
   {% endif %}
@@ -20,6 +19,7 @@
 {
   "name": "RapidSale Countdown Timer",
   "target": "section",
+  "javascript": "timer.js",
   "settings": [
     {
       "type": "text",

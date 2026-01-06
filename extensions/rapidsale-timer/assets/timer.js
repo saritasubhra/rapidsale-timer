@@ -2,13 +2,16 @@
   const containers = document.querySelectorAll(".rapidsale-timer");
 
   containers.forEach(async (el) => {
-    const timerId = "cmjybf6x70001chrsrk1oy8qp";
+    const timerId = el.dataset.timerId;
     if (!timerId) return;
 
     try {
       const res = await fetch(
-        `/apps/rapidsale/timer/cmjybf6x70001chrsrk1oy8qp`,
+        `https://rapidsale-timer.vercel.app/api/timer/${timerId}`,
       );
+
+      console.log(res);
+
       if (!res.ok) throw new Error("Timer fetch failed");
 
       const timer = await res.json();

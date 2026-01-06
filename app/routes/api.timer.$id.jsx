@@ -1,6 +1,12 @@
 import prisma from "../db.server";
 
 export async function loader({ params }) {
+  const corsHeaders = new Headers({
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  });
+
   const timer = await prisma.timer.findFirst({
     where: {
       id: params.id,
@@ -8,8 +14,14 @@ export async function loader({ params }) {
   });
 
   if (!timer) {
-    throw new Response("Not found", { status: 404 });
+    throw new Response("Not found", { status: 404, headers: corsHeaders });
   }
 
-  return Response.json(timer);
+  return Response.json(JSON.stringify(timer), {
+    status: 200,
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "application/json",
+    },
+  });
 }
