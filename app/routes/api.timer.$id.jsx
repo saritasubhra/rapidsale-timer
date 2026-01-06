@@ -17,7 +17,7 @@ export async function loader({ params }) {
     throw new Response("Not found", { status: 404, headers: corsHeaders });
   }
 
-  return Response.json(JSON.stringify(timer), {
+  return Response.json(timer, {
     status: 200,
     headers: {
       "Access-Control-Allow-Origin": "*",

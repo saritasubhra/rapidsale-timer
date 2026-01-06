@@ -10,11 +10,18 @@
         `https://rapidsale-timer.vercel.app/api/timer/${timerId}`,
       );
 
-      console.log(res);
-
       if (!res.ok) throw new Error("Timer fetch failed");
 
-      const timer = await res.json();
+      const raw = await res.json();
+
+      // 1) If the API might return an array, unwrap first element
+      const rawTimer = Array.isArray(raw) ? raw[0] : raw;
+
+      // 2) Deep-clone to strip prototype and weird descriptors
+      const timer = JSON.parse(JSON.stringify(rawTimer));
+
+      console.log("CLEAN timer:", timer);
+      console.log("CLEAN bgColor:", timer.bgColor); // should now be "#FFFFFF"
 
       renderTimer(el, timer);
     } catch (err) {
@@ -24,85 +31,97 @@
   });
 
   function renderTimer(container, timer) {
+    // console.log("hasOwnProperty bgColor:", timer.hasOwnProperty("bgColor"));
+    // console.log("own keys length:", Object.keys(timer).length);
+    // console.log(
+    //   "getOwnPropertyNames length:",
+    //   Object.getOwnPropertyNames(timer).length,
+    // );
+
     container.innerHTML = `
-      <div
-        style="
-          background:${timer.bgColor};
-          border:${timer.borderSize}px solid ${timer.borderColor};
-          border-radius:${timer.borderRadius}px;
-          padding:${timer.paddingTopBottom}px ${timer.paddingInside}px;
-          text-align:center;
-          font-family:${timer.fontFamily === "theme" ? "inherit" : timer.fontFamily};
-        "
-      >
-        <div
-          style="
-            font-size:${timer.titleSize}px;
-            color:${timer.titleColor};
-            margin-bottom:8px;
-          "
-        >
-          ${timer.title}
+      <div style="
+          background: ${timer.bgColor || "#852626ff"};
+          border: ${timer.borderSize || 0}px solid ${timer.borderColor || "transparent"};
+          border-radius: ${timer.borderRadius || 0}px;
+          padding: ${timer.paddingTopBottom || 10}px ${timer.paddingInside || 10}px;
+          text-align: center;
+          font-family: ${timer.fontFamily === "theme" ? "inherit" : timer.fontFamily};
+        ">
+        <div style="
+            font-size: ${timer.titleSize || 20}px;
+            color: ${timer.titleColor || "#000"};
+            margin-bottom: 8px;
+          ">
+          ${timer.title || ""}
         </div>
-
-        <div class="rapidsale-time" style="font-size:32px;font-weight:600;">
-          -- : -- : -- : --
+        <div class="rapidsale-time" style="font-size:32px; font-weight:600; color: ${timer.titleColor || "#000"};">
+          00 : 00 : 00 : 00
         </div>
-
         ${
           timer.buttonText
-            ? `<a
-                href="${timer.link || "#"}"
-                style="
-                  display:inline-block;
-                  margin-top:10px;
-                  padding:10px 18px;
-                  background:#000;
-                  color:#fff;
-                  text-decoration:none;
-                  border-radius:6px;
-                "
-              >
-                ${timer.buttonText}
-              </a>`
+            ? `
+          <a href="${timer.link || "#"}" style="
+              display: inline-block;
+              margin-top: 10px;
+              padding: 10px 18px;
+              background: #000;
+              color: #fff;
+              text-decoration: none;
+              border-radius: 6px;
+            ">
+            ${timer.buttonText}
+          </a>`
             : ""
         }
       </div>
     `;
 
-    startCountdown(container.querySelector(".rapidsale-time"), timer);
+    // 2. Find the newly created time display element and start the clock
+    const timeDisplay = container.querySelector(".rapidsale-time");
+    if (timeDisplay) {
+      startCountdown(timeDisplay, timer);
+    }
   }
 
   function startCountdown(el, timer) {
     let endTime;
 
-    if (timer.timerType === "date") {
+    if (timer.expiresAt) {
+      endTime = new Date(timer.expiresAt).getTime();
+    } else if (timer.timerType === "date") {
       endTime = new Date(`${timer.endDate}T${timer.endTime}`).getTime();
     } else {
-      endTime = Date.now() + Number(timer.fixedMinutes) * 60 * 1000;
+      endTime = Date.now() + (parseInt(timer.fixedMinutes) || 0) * 60 * 1000;
     }
 
-    const tick = () => {
-      const diff = endTime - Date.now();
+    if (Number.isNaN(endTime)) {
+      console.error("Invalid endTime", { timer });
+      el.textContent = "00 : 00 : 00 : 00";
+      return;
+    }
+
+    const updateClock = () => {
+      const now = Date.now();
+      const diff = endTime - now;
+
       if (diff <= 0) {
         el.textContent = "00 : 00 : 00 : 00";
         return;
       }
 
-      const total = Math.floor(diff / 1000);
-      const days = Math.floor(total / 86400);
-      const hrs = Math.floor((total % 86400) / 3600);
-      const mins = Math.floor((total % 3600) / 60);
-      const secs = total % 60;
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((diff % (1000 * 60)) / 1000);
 
       el.textContent =
-        `${String(days).padStart(2, "0")} : ` +
-        `${String(hrs).padStart(2, "0")} : ` +
-        `${String(mins).padStart(2, "0")} : ` +
-        `${String(secs).padStart(2, "0")}`;
+        `${String(d).padStart(2, "0")} : ` +
+        `${String(h).padStart(2, "0")} : ` +
+        `${String(m).padStart(2, "0")} : ` +
+        `${String(s).padStart(2, "0")}`;
     };
 
-    tick();
-    setInterval(tick, 1000);
+    updateClock();
+    setInterval(updateClock, 1000);
   }
 })();
