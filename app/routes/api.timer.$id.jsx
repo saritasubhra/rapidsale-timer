@@ -20,7 +20,9 @@ export async function loader({ params }) {
   return Response.json(JSON.stringify(timer), {
     status: 200,
     headers: {
-      ...corsHeaders,
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
       "Content-Type": "application/json",
     },
   });
