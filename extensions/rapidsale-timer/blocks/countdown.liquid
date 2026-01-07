@@ -1,32 +1,15 @@
-{% if block.settings.timer_id != blank %}
-  <div
-    class="rapidsale-timer"
-    data-timer-id="{{ block.settings.timer_id }}"
-  >
-    <div class="rapidsale-loading">Loading countdown…</div>
-  </div>
-  {% comment %} REMOVE THE SCRIPT_TAG LINE FROM HERE {% endcomment %}
-{% else %}
-  {% if request.design_mode %}
-    <div style="padding:12px;border:1px dashed #ccc;">
-      <strong>RapidSale Countdown Timer 2</strong><br>
-      Select a timer in block settings.
-    </div>
-  {% endif %}
-{% endif %}
+<div
+  class="rapidsale-timer"
+  data-shop="{{ shop.permanent_domain }}"
+>
+  <div class="rapidsale-loading">Loading countdown…</div>
+</div>
 
 {% schema %}
 {
   "name": "RapidSale Countdown Timer",
   "target": "section",
   "javascript": "timer.js",
-  "settings": [
-    {
-      "type": "text",
-      "id": "timer_id",
-      "label": "Timer ID",
-      "info": "Paste the Timer ID from the app"
-    }
-  ]
+  "settings": []
 }
 {% endschema %}

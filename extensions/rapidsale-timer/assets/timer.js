@@ -2,42 +2,32 @@
   const containers = document.querySelectorAll(".rapidsale-timer");
 
   containers.forEach(async (el) => {
-    const timerId = el.dataset.timerId;
-    if (!timerId) return;
+    const shop = el.dataset.shop;
 
     try {
       const res = await fetch(
-        `https://rapidsale-timer.vercel.app/api/timer/${timerId}`,
+        `https://rapidsale-timer.vercel.app/api/timer/active?shop=${shop}&type=product-page`,
       );
+
+      console.log("res1", res);
 
       if (!res.ok) throw new Error("Timer fetch failed");
 
-      const raw = await res.json();
+      const timer = await res.json();
 
-      // 1) If the API might return an array, unwrap first element
-      const rawTimer = Array.isArray(raw) ? raw[0] : raw;
-
-      // 2) Deep-clone to strip prototype and weird descriptors
-      const timer = JSON.parse(JSON.stringify(rawTimer));
-
-      console.log("CLEAN timer:", timer);
-      console.log("CLEAN bgColor:", timer.bgColor); // should now be "#FFFFFF"
+      if (!timer) {
+        el.innerHTML = ""; // No active timer → render nothing
+        return;
+      }
 
       renderTimer(el, timer);
     } catch (err) {
-      el.innerHTML = "<p>Failed to load timer.</p>";
       console.error(err);
+      el.innerHTML = "";
     }
   });
 
   function renderTimer(container, timer) {
-    // console.log("hasOwnProperty bgColor:", timer.hasOwnProperty("bgColor"));
-    // console.log("own keys length:", Object.keys(timer).length);
-    // console.log(
-    //   "getOwnPropertyNames length:",
-    //   Object.getOwnPropertyNames(timer).length,
-    // );
-
     container.innerHTML = `
       <div style="
           background: ${timer.bgColor || "#852626ff"};
