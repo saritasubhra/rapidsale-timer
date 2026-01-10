@@ -18,7 +18,7 @@ import {
   InlineGrid,
 } from "@shopify/polaris";
 
-import { useParams } from "react-router";
+import { useParams, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
 import { CalendarIcon, SearchIcon, XIcon } from "@shopify/polaris-icons";
 
@@ -26,6 +26,7 @@ const today = new Date().toISOString().split("T")[0];
 
 export default function TimerEditor() {
   const { type } = useParams();
+  const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState(0);
   const [timeLeft, setTimeLeft] = useState({
     days: "00",
@@ -34,7 +35,7 @@ export default function TimerEditor() {
     secs: "00",
   });
 
-  // --- ALL-IN-ONE STATE ---
+  const isBar = type === "top-bottom-bar";
 
   const [formData, setFormData] = useState({
     // Content
@@ -55,7 +56,7 @@ export default function TimerEditor() {
     // Design
 
     template: "Custom",
-    bgType: "single", // single, gradient, image
+    bgType: "single",
     bgColor: "#FFFFFF",
     borderRadius: "8",
     borderSize: "0",
@@ -70,6 +71,7 @@ export default function TimerEditor() {
 
     productTarget: "all",
     geoTarget: "all",
+    type: isBar ? "top-bottom-bar" : "product-page",
   });
 
   const handleUpdate = (field, value) => {
@@ -84,12 +86,10 @@ export default function TimerEditor() {
 
   // --- PREVIEW RENDER LOGIC ---
 
-  const isBar = type === "top-bottom-bar";
-
   const previewStyles = {
     backgroundColor: formData.bgColor,
     // If it's a bar, we usually want 0 radius; otherwise use the setting
-    borderRadius: isBar ? "0px" : `${formData.borderRadius}px`,
+    borderRadius: `${formData.borderRadius}px`,
     border: `${formData.borderSize}px solid ${formData.borderColor}`,
     padding: `${parseInt(formData.paddingTopBottom) || 0}px 20px`,
     textAlign: "center",
@@ -189,7 +189,10 @@ export default function TimerEditor() {
 
   return (
     <Page
-      backAction={{ content: "Templates", url: "/app/templates" }}
+      backAction={{
+        content: "Templates",
+        onAction: () => navigate("/app/templates"),
+      }}
       title={formData.name}
       titleMetadata={<Badge tone="attention">Not published</Badge>}
       primaryAction={{
@@ -201,15 +204,13 @@ export default function TimerEditor() {
             body: JSON.stringify(formData),
           });
 
-          const data = await res.json();
-          console.log("Timer ID:", data);
+          await res.json();
 
           shopify.toast.show("Timer Saved!");
         },
       }}
     >
       <BlockStack gap="500">
-        {/* --- TOP BAR PREVIEW (ONLY SHOWS IF TYPE IS BAR) --- */}
         {/* --- TOP BAR PREVIEW --- */}
         {isBar && (
           <div style={previewStyles}>

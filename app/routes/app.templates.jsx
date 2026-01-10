@@ -45,7 +45,10 @@ export default function Templates() {
   return (
     <Page
       title="Choose timer type"
-      backAction={{ content: "Back", url: "/app" }}
+      backAction={{
+        content: "Home",
+        onAction: () => navigate("/app"),
+      }}
     >
       <InlineGrid columns={{ xs: 1, sm: 2, md: 3 }} gap="400">
         {TIMER_TYPES.map((timer) => (

@@ -1,4 +1,4 @@
-import { useLoaderData } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
@@ -9,20 +9,27 @@ export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
 
   const timers = await prisma.timer.findMany({
-    where: { shop: session.shop },
+    where: {
+      shop: session.shop,
+    },
     select: {
       id: true,
       name: true,
       createdAt: true,
       timerType: true,
       endDate: true,
+      expiresAt: true,
       fixedMinutes: true,
       status: true,
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return Response.json({ timers });
+  return Response.json({
+    timers,
+    shop: session.shop,
+    extensionId: process.env.SHOPIFY_RAPIDSALE_TIMER_ID,
+  });
 };
 
 export const action = async ({ request }) => {
@@ -91,9 +98,10 @@ export const action = async ({ request }) => {
 };
 
 export default function Index() {
-  const { timers } = useLoaderData();
+  const { timers, shop, extensionId } = useLoaderData();
   const [timerList, setTimerList] = useState(timers || []);
   const shopify = useAppBridge();
+  const navigate = useNavigate();
 
   const handleDelete = async (id) => {
     try {
@@ -113,37 +121,46 @@ export default function Index() {
     }
   };
 
-  const handlePublish = async (id) => {
-    try {
-      const res = await fetch("/api/timer-publish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      const data = await res.json();
+  const handlePublish = async () => {
+    const editorUrl = `https://${shop}/admin/themes/current/editor?context=apps&activateAppId=${extensionId}`;
+    window.open(editorUrl, "_blank");
+  };
+  // const handlePublish = async (id) => {
+  //   try {
+  //     const res = await fetch("/api/timer-publish", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ id }),
+  //     });
+  //     const data = await res.json();
 
-      if (data.success) {
-        shopify.toast.show("Timer Published!");
+  //     if (data.success) {
+  //       shopify.toast.show("Timer Published!");
 
-        setTimerList((prev) =>
-          prev.map((t) => (t.id === id ? { ...t, status: "active" } : t)),
-        );
+  //       setTimerList((prev) =>
+  //         prev.map((t) => (t.id === id ? { ...t, status: "active" } : t)),
+  //       );
 
-        window.open(
-          `https://${data.shop}/admin/themes/current/editor?template=product&addAppBlockId=rapidsale-timer/countdown`,
-          "_blank",
-        );
-      }
-    } catch (err) {
-      shopify.toast.show("Failed to publish", { isError: true });
-    }
+  //       window.open(
+  //         `https://${data.shop}/admin/themes/current/editor?template=product&addAppBlockId=rapidsale-timer`,
+  //         "_blank",
+  //       );
+  //     }
+  //   } catch (err) {
+  //     shopify.toast.show("Failed to publish", { isError: true });
+  //   }
+  // };
+
+  const isExpired = (endDate) => {
+    if (!endDate) return false;
+    return new Date(endDate) < new Date();
   };
 
   return (
     <s-page heading="My Countdown Timers">
       <s-button
         slot="primary-action"
-        onClick={() => (window.location.href = "/app/templates")}
+        onClick={() => navigate("/app/templates")}
       >
         Create New Timer
       </s-button>
@@ -181,18 +198,35 @@ export default function Index() {
 
                     {/* STATUS TAB/BADGE */}
                     <td style={{ padding: "12px" }}>
-                      <span
-                        style={{
-                          padding: "4px 8px",
-                          borderRadius: "10px",
-                          fontSize: "12px",
-                          backgroundColor:
-                            timer.status === "active" ? "#e3fbe3" : "#f1f1f1",
-                          color: timer.status === "active" ? "#008000" : "#666",
-                        }}
-                      >
-                        {timer.status || "published"}
-                      </span>
+                      {isExpired(timer.expiresAt) ? (
+                        <span
+                          style={{
+                            padding: "4px 8px",
+                            borderRadius: "10px",
+                            fontSize: "12px",
+                            backgroundColor: "#fdecea",
+                            color: "#b42318",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Expired
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            padding: "4px 8px",
+                            borderRadius: "10px",
+                            fontSize: "12px",
+                            backgroundColor:
+                              timer.status === "active" ? "#e3fbe3" : "#f1f1f1",
+                            color:
+                              timer.status === "active" ? "#008000" : "#666",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {timer.status || "draft"}
+                        </span>
+                      )}
                     </td>
 
                     <td style={{ padding: "12px" }}>
@@ -205,19 +239,21 @@ export default function Index() {
                     <td style={{ padding: "12px" }}>
                       <div style={{ display: "flex", gap: "8px" }}>
                         <s-button
-                          variant="primary"
-                          onClick={() => handlePublish(timer.id)}
-                        >
-                          Publish & View
-                        </s-button>
-                        {/* DELETE BUTTON */}
-                        <s-button
                           variant="secondary"
                           tone="critical"
                           onClick={() => handleDelete(timer.id)}
                         >
                           Delete
                         </s-button>
+
+                        {!isExpired(timer.expiresAt) && (
+                          <s-button
+                            variant="primary"
+                            onClick={() => handlePublish(timer.id)}
+                          >
+                            Publish & View
+                          </s-button>
+                        )}
                       </div>
                     </td>
                   </tr>

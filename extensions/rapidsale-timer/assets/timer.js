@@ -1,116 +1,107 @@
 (async function () {
+  // ONLY target .rapidsale-timer containers
   const containers = document.querySelectorAll(".rapidsale-timer");
 
   containers.forEach(async (el) => {
-    const shop = el.dataset.shop;
+    // Only run on product pages
+    if (!window.location.pathname.includes("/products/")) {
+      el.remove();
+      return;
+    }
+
+    const shop = window.location.hostname.replace("www.", "");
 
     try {
       const res = await fetch(
         `https://rapidsale-timer.vercel.app/api/timer/active?shop=${shop}&type=product-page`,
       );
 
-      console.log("res1", res);
-
       if (!res.ok) throw new Error("Timer fetch failed");
-
       const timer = await res.json();
 
       if (!timer) {
-        el.innerHTML = ""; // No active timer → render nothing
+        el.remove();
         return;
       }
 
-      renderTimer(el, timer);
+      renderProductTimer(el, timer);
     } catch (err) {
       console.error(err);
-      el.innerHTML = "";
+      el.remove();
     }
   });
 
-  function renderTimer(container, timer) {
-    container.innerHTML = `
-      <div style="
-          background: ${timer.bgColor || "#852626ff"};
-          border: ${timer.borderSize || 0}px solid ${timer.borderColor || "transparent"};
-          border-radius: ${timer.borderRadius || 0}px;
-          padding: ${timer.paddingTopBottom || 10}px ${timer.paddingInside || 10}px;
-          text-align: center;
-          font-family: ${timer.fontFamily === "theme" ? "inherit" : timer.fontFamily};
-        ">
-        <div style="
-            font-size: ${timer.titleSize || 20}px;
-            color: ${timer.titleColor || "#000"};
-            margin-bottom: 8px;
-          ">
-          ${timer.title || ""}
-        </div>
-        <div class="rapidsale-time" style="font-size:32px; font-weight:600; color: ${timer.titleColor || "#000"};">
-          00 : 00 : 00 : 00
-        </div>
-        ${
-          timer.buttonText
-            ? `
-          <a href="${timer.link || "#"}" style="
-              display: inline-block;
-              margin-top: 10px;
-              padding: 10px 18px;
-              background: #000;
-              color: #fff;
-              text-decoration: none;
-              border-radius: 6px;
-            ">
-            ${timer.buttonText}
-          </a>`
-            : ""
-        }
+  function renderProductTimer(container, timer) {
+    // Find product form area
+    const selectors = [
+      'section[data-section-type="product-template"] .product-form',
+      ".product-form",
+      'form[action*="/cart/add"]',
+      'button[name="add"]',
+      ".price",
+    ];
+
+    let target = null;
+    for (const sel of selectors) {
+      target = document.querySelector(sel);
+      if (target) break;
+    }
+
+    if (!target) {
+      container.remove();
+      return;
+    }
+
+    const bar = document.createElement("div");
+    bar.style.cssText = `
+        width: 100%;
+        background: ${timer.bgColor};
+        padding: ${timer.paddingTopBottom}px ${timer.paddingInside}px;
+        margin: 16px 0;
+        text-align: center;
+        border-radius: ${timer.borderRadius || 0}px;
+      `;
+
+    bar.innerHTML = `
+      <div style="font-size: ${timer.titleSize}px; color: ${timer.titleColor}; font-weight: 600; white-space: nowrap;">
+        ${timer.title}
       </div>
+      <div class="rapidsale-time" style="font-size: 28px; font-weight: 700; color: ${timer.titleColor}; white-space: nowrap;">
+        00 : 00 : 00 : 00
+      </div>
+      ${timer.buttonText ? `<a href="${timer.link || "#"}" style="background: #000; color: #fff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 14px;">${timer.buttonText}</a>` : ""}
     `;
 
-    // 2. Find the newly created time display element and start the clock
-    const timeDisplay = container.querySelector(".rapidsale-time");
-    if (timeDisplay) {
-      startCountdown(timeDisplay, timer);
-    }
+    target.parentNode.insertBefore(bar, target.nextSibling);
+    container.remove();
+    startCountdown(bar.querySelector(".rapidsale-time"), timer);
   }
 
+  // Same startCountdown function as above
   function startCountdown(el, timer) {
-    let endTime;
-
-    if (timer.expiresAt) {
-      endTime = new Date(timer.expiresAt).getTime();
-    } else if (timer.timerType === "date") {
-      endTime = new Date(`${timer.endDate}T${timer.endTime}`).getTime();
-    } else {
-      endTime = Date.now() + (parseInt(timer.fixedMinutes) || 0) * 60 * 1000;
-    }
+    let endTime = timer.expiresAt
+      ? new Date(timer.expiresAt).getTime()
+      : timer.timerType === "date"
+        ? new Date(`${timer.endDate}T${timer.endTime}`).getTime()
+        : Date.now() + (parseInt(timer.fixedMinutes) || 0) * 60 * 1000;
 
     if (Number.isNaN(endTime)) {
-      console.error("Invalid endTime", { timer });
       el.textContent = "00 : 00 : 00 : 00";
       return;
     }
 
     const updateClock = () => {
-      const now = Date.now();
-      const diff = endTime - now;
-
+      const diff = endTime - Date.now();
       if (diff <= 0) {
         el.textContent = "00 : 00 : 00 : 00";
         return;
       }
-
       const d = Math.floor(diff / (1000 * 60 * 60 * 24));
       const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const s = Math.floor((diff % (1000 * 60)) / 1000);
-
-      el.textContent =
-        `${String(d).padStart(2, "0")} : ` +
-        `${String(h).padStart(2, "0")} : ` +
-        `${String(m).padStart(2, "0")} : ` +
-        `${String(s).padStart(2, "0")}`;
+      el.textContent = `${String(d).padStart(2, "0")} : ${String(h).padStart(2, "0")} : ${String(m).padStart(2, "0")} : ${String(s).padStart(2, "0")}`;
     };
-
     updateClock();
     setInterval(updateClock, 1000);
   }
