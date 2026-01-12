@@ -122,9 +122,13 @@ export default function Index() {
   };
 
   const handlePublish = async () => {
-    const editorUrl = `https://${shop}/admin/themes/current/editor?context=apps&activateAppId=${extensionId}`;
+    const editorUrl = `https://${shop}/admin/themes/current/editor?context=apps`;
     window.open(editorUrl, "_blank");
   };
+  // const handlePublish = async () => {
+  //   const editorUrl = `https://${shop}/admin/themes/current/editor?context=apps&activateAppId=${extensionId}`;
+  //   window.open(editorUrl, "_blank");
+  // };
   // const handlePublish = async (id) => {
   //   try {
   //     const res = await fetch("/api/timer-publish", {
